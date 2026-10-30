@@ -1,6 +1,6 @@
 ---
 name: swipe-decide
-description: Use when the user wants to settle many open decisions quickly, says "let's decide these quickly" or "sort out the open decisions," or when 5+ open decisions have piled up in the conversation. Japanese triggers include サクサク決めたい / まとめて決めたい / 未決事項を整理して.
+description: Use when the user wants to settle many open decisions quickly, says "let's decide these quickly" or "sort out the open decisions," or when 5+ open decisions have piled up in the conversation, or when a long unattended run (for example overnight) ends with questions deferred to the user. Japanese triggers include サクサク決めたい / まとめて決めたい / 未決事項を整理して.
 ---
 
 # swipe-decide
@@ -13,6 +13,7 @@ Turn open decisions into cards, have the user settle them all at once by swiping
    - Do not ask if they have already been specified. If the user chooses "surprise me" or gives no answer, use `pop` and `auto`.
 2. **Extract**: Find the items that remain undecided in the conversation. If there are many, take up to 12 in order of impact. Tell the user that the rest will be handled in the "next round."
    - If the previous `decisions.md` contains items marked "on hold," pick those up first (carry them over).
+   - After an unattended run, include the questions you set aside while working (for example, notes you kept for later). While working unattended, pick the safest reversible default, note the question, and keep going.
    - Decide low-impact, reversible items yourself instead of turning them into cards.
 3. **Break down**: Turn anything that can be decided with Yes/No into a proposition such as "Go with A?" Use a choice card (`options`) when there are 2–4 alternatives the user should compare and choose from. Narrow down sets of 5 or more before presenting them.
 4. **Create cards**: Build each card according to the specification below.

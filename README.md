@@ -12,7 +12,13 @@ A Claude skill that turns the open decisions piling up in your session into card
 
 ## Why I made it
 
-Claude (Opus 5.5) has gotten smart enough that a lot of what it asks me now is just "yes, go ahead". Settling those with a swipe, and having a bit of fun doing it, makes work and hobby projects feel more enjoyable.
+Claude (Opus 5.5) has gotten smart enough that a lot of what it asks me now is just "yes, go ahead". Typing "yes" over and over felt like a chore, so I turned the questions into cards. Swiping through them takes seconds, and honestly it's kind of addictive. Work and hobby projects got more fun.
+
+## When it shines
+
+- **Mid-session pile-up.** Claude has five questions for you. Swipe them all in one go instead of answering one by one.
+- **After a long unattended run.** Let Claude work overnight or while you're away, then settle everything it was unsure about in one sitting the next morning.
+- **Batching your attention.** Let the small calls queue up, then clear them in one burst whenever you have a minute, even from your phone.
 
 ## 30-second start
 
