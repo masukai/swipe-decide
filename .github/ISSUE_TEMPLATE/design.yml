@@ -1,0 +1,38 @@
+name: Design idea
+description: Propose a new look or improve an existing one.
+title: "[Design] "
+body:
+  - type: dropdown
+    id: look
+    attributes:
+      label: Which look?
+      options:
+        - Calm
+        - Pop
+        - Flashy
+        - A new look
+        - All looks
+    validations:
+      required: true
+  - type: dropdown
+    id: scheme
+    attributes:
+      label: Which color scheme?
+      options:
+        - Light and dark
+        - Light
+        - Dark
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you change?
+      description: Tell us about the new look or the improvement you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Screenshot or GIF
+      description: Visual examples are very welcome—drop them here.

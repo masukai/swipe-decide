@@ -1,0 +1,189 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check repository files
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import {
+            existsSync,
+            readFileSync,
+            statSync,
+          } from "node:fs";
+          import { dirname, resolve } from "node:path";
+
+          const errors = [];
+          const report = (message) => errors.push(message);
+
+          function readJson(path) {
+            try {
+              return JSON.parse(readFileSync(path, "utf8"));
+            } catch (error) {
+              report(`${path}: invalid JSON (${error.message})`);
+              return null;
+            }
+          }
+
+          const plugin = readJson(".claude-plugin/plugin.json");
+          const marketplace = readJson(".claude-plugin/marketplace.json");
+          if (
+            plugin &&
+            marketplace &&
+            marketplace.plugins?.[0]?.name !== plugin.name
+          ) {
+            report(
+              ".claude-plugin: marketplace.json plugins[0].name must match plugin.json name",
+            );
+          }
+
+          const skillPath = "skills/swipe-decide/SKILL.md";
+          const skill = readFileSync(skillPath, "utf8");
+          const frontmatter = /^---\s*\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(skill);
+          if (!frontmatter) {
+            report(`${skillPath}: missing YAML frontmatter`);
+          } else {
+            const field = (name) => {
+              const match = new RegExp(`^${name}:\\s*(.*)$`, "m").exec(frontmatter[1]);
+              if (!match) return null;
+              const value = match[1].trim();
+              if (
+                value.length >= 2 &&
+                ((value.startsWith('"') && value.endsWith('"')) ||
+                  (value.startsWith("'") && value.endsWith("'")))
+              ) {
+                return value.slice(1, -1).trim();
+              }
+              return value;
+            };
+            if (field("name") !== "swipe-decide") {
+              report(`${skillPath}: frontmatter name must be "swipe-decide"`);
+            }
+            if (!field("description")) {
+              report(`${skillPath}: frontmatter description must be non-empty`);
+            }
+          }
+
+          const templatePath = "skills/swipe-decide/assets/template.html";
+          const template = readFileSync(templatePath, "utf8");
+          const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+          const jsonBlocks = new Map();
+          const attribute = (source, name) => {
+            const match = new RegExp(
+              `\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+              "i",
+            ).exec(source);
+            return match ? (match[1] ?? match[2] ?? match[3]) : null;
+          };
+
+          for (const match of template.matchAll(scriptPattern)) {
+            const [, attributes, body] = match;
+            const id = attribute(attributes, "id");
+            const type = attribute(attributes, "type");
+            const src = attribute(attributes, "src");
+
+            if (id === "config" || id === "cards") {
+              jsonBlocks.set(id, true);
+              if (type?.toLowerCase() !== "application/json") {
+                report(`${templatePath}: script#${id} must have type="application/json"`);
+              }
+              try {
+                JSON.parse(body);
+              } catch (error) {
+                report(`${templatePath}: script#${id} contains invalid JSON (${error.message})`);
+              }
+            }
+
+            if (type === null && src === null && body.trim()) {
+              try {
+                new Function(body);
+              } catch (error) {
+                report(`${templatePath}: inline JavaScript does not parse (${error.message})`);
+              }
+            }
+          }
+          for (const id of ["config", "cards"]) {
+            if (!jsonBlocks.has(id)) {
+              report(`${templatePath}: missing script#${id} JSON block`);
+            }
+          }
+
+          const markdownFiles = ["README.md", "README.ja.md", "CONTRIBUTING.md"];
+          for (const markdownPath of markdownFiles) {
+            const markdown = readFileSync(markdownPath, "utf8");
+            const targets = [];
+            const patterns = [
+              /!?\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/g,
+              /^\s*\[[^\]]+\]:\s*(?:<([^>]+)>|(\S+))/gm,
+            ];
+            for (const pattern of patterns) {
+              for (const match of markdown.matchAll(pattern)) {
+                targets.push(match[1] ?? match[2]);
+              }
+            }
+
+            for (const originalTarget of targets) {
+              if (
+                originalTarget.startsWith("#") ||
+                originalTarget.startsWith("/") ||
+                /^[a-z][a-z0-9+.-]*:/i.test(originalTarget)
+              ) {
+                continue;
+              }
+              const withoutAnchor = originalTarget.split(/[?#]/, 1)[0];
+              if (!withoutAnchor) continue;
+
+              let relativePath;
+              try {
+                relativePath = decodeURIComponent(withoutAnchor);
+              } catch {
+                report(`${markdownPath}: link has invalid URL encoding: ${originalTarget}`);
+                continue;
+              }
+              const linkedPath = resolve(dirname(markdownPath), relativePath);
+              if (!existsSync(linkedPath) || !statSync(linkedPath).isFile()) {
+                report(`${markdownPath}: linked file does not exist: ${originalTarget}`);
+              }
+            }
+          }
+
+          const trackedFiles = execFileSync("git", ["ls-files", "-z"], {
+            encoding: "utf8",
+          })
+            .split("\0")
+            .filter(Boolean);
+          const forbidden = ["/" + "Users/", "gmail" + ".com"];
+          for (const path of trackedFiles) {
+            const contents = readFileSync(path);
+            if (contents.includes(0)) continue;
+            const text = contents.toString("utf8");
+            for (const needle of forbidden) {
+              if (text.includes(needle)) {
+                report(`${path}: tracked text contains forbidden personal data pattern`);
+              }
+            }
+          }
+
+          if (errors.length) {
+            console.error("Check failed:");
+            for (const error of errors) console.error(`- ${error}`);
+            process.exit(1);
+          }
+
+          console.log(
+            "OK: manifests, skill, template scripts, Markdown links, and tracked text files.",
+          );
+          NODE

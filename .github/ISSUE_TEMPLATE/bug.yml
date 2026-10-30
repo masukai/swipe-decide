@@ -1,0 +1,33 @@
+name: Bug report
+description: Tell us about something that did not work as expected.
+title: "[Bug] "
+body:
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool used
+      options:
+        - Claude Code
+        - Claude app
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened?
+      description: Tell us what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A short numbered list is perfect.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot and window size
+      description: If the issue is visual, please attach a screenshot and include the window size.
