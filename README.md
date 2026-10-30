@@ -103,7 +103,7 @@ Three styles, each in light and dark. Pick one when you start, or let Claude sur
 The skill is plain `SKILL.md` plus one HTML file, but only Claude Code has been tested.
 
 **Where do my results go?**
-In Claude Code and other tools with a shell, Claude starts a tiny local server (127.0.0.1 only, Python standard library) and your results are saved automatically. In the Claude app, an artifact saves them for you. Anywhere else, open the generated `decide-<run>.html`, use **Copy results**, and paste the result back into chat.
+In Claude Code and other tools with a shell, Claude starts a tiny local server (127.0.0.1 only, Python standard library) and your results are saved automatically. In the Claude app, an artifact saves them for you. **To swipe on your phone, use the Claude app (the page opens as an artifact); the local server is only reachable from your own computer.** Anywhere else, open the generated `decide-<run>.html`, use **Copy results**, and paste the result back into chat.
 
 ## 🤝 Contributing
 
