@@ -64,7 +64,13 @@ The skill is plain `SKILL.md` plus one HTML file, but only Claude Code has been 
 
 **Where do my results go?**
 
-Outside the Claude app there is no automatic saving. Open the generated `decide.html`, use **Copy results**, and paste the result back into chat.
+In Claude Code and other tools with a shell, Claude starts a tiny local server (127.0.0.1 only, Python standard library) and your results are saved automatically. In the Claude app, an artifact saves them for you. Anywhere else, open the generated `decide-<run>.html`, use **Copy results**, and paste the result back into chat.
+
+## Contributing
+
+Feature ideas and bug reports are welcome as issues, and PRs are welcome too. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Designers, this one is for you.** The card UI is a single HTML file, and each look (calm, pop, flashy) is just a block of CSS. A new look, a better one, or a polish pass on an existing one is a great first contribution.
 
 ## About this project
 

@@ -21,12 +21,17 @@ Turn open decisions into cards, have the user settle them all at once by swiping
    - Add `risk: true` to irreversible decisions involving deletion, publication, money, and similar concerns.
    - Write the card text in the language the user is using in the conversation.
 5. **Output**: Read `assets/template.html` from the same folder as this SKILL.md, replace only the following two locations, and save the result. Use the code under "Replacement" below.
-   - `id="config"`: The answers from step 1 and the run ID `run` (for example, `2026-10-29-2030`; alphanumeric characters and hyphens only). Fix `lang` to the language used for the cards (`ja` / `en`). Use `auto` (to match the device language) only when every card has `i18n`.
+   - `id="config"`: The answers from step 1 and the run ID `run` (date, time and 4 random characters, for example `2026-10-30-2230-k3x9`, so that parallel sessions never collide; alphanumeric characters and hyphens only). Fix `lang` to the language used for the cards (`ja` / `en`). Use `auto` (to match the device language) only when every card has `i18n`.
    - `id="cards"`: The card JSON.
-   - Standard (works with any tool): Write the result to `./decide.html` and open it in a browser. Because results are not saved automatically, ask the user to paste them using "Copy results."
-   - Only when the user wants to open it on a phone in the Claude app or use automatic saving: publish it as an artifact and add `{"db":{}}` to `capabilities`.
+   - Standard (works with any tool): Write the result to `./decide-<run>.html` (the run ID in the name keeps parallel sessions from overwriting each other).
+   - When a shell is available, optionally start the inline local server under "Replacement" in the background from the directory containing the page. Tell the user to open the printed `http://127.0.0.1:<port>/decide-<run>.html` URL. If the server cannot start, open `decide-<run>.html` as a local file and rely on "Copy results" and paste instead.
+   - Only when the user wants to open it on a phone in the Claude app or specifically use artifact db saving: publish it as an artifact and add `{"db":{}}` to `capabilities`.
 6. **Wait**: Say only this one line: "When you've decided everything, send 'done.' If it couldn't be saved, follow the on-screen instructions, use 'Copy results,' and paste them here." Even when the page saves the results, Claude is not notified.
-7. **Read**: When the user says "done," read the saved data at `results/<run>` (if it was published as an artifact). If it cannot be found or its `status` is not `done`, ask the user to paste the copied results. After reading it, update `status` to `applied`. When the results are provided by pasting, there is no need to read or update saved data.
+7. **Read**: When the user says "done," use the path for the output method from step 5.
+   - Local server: Read `results/<run>.json` and require `status` to be `done`, then stop the server using its printed PID. `results/` is local output; recommend adding it to `.gitignore` rather than committing it.
+   - Artifact: Keep the existing behavior: read `results/<run>`, require `status` to be `done`, and then update `status` to `applied`.
+   - Paste: No saved-data read or update is needed.
+   - If the expected saved result cannot be found or its status is not `done`, ask the user to paste the copied results. Stop a local server after this check as well.
 8. **Resume**: Read the results and proceed according to each `choice` in `decisions`.
    - `yes`: Do it.
    - `no`: Do not do it. **Do not ask for confirmation afterward.** If `if_no` exists, carry out that alternative instead.
@@ -74,7 +79,39 @@ t = re.sub(r'(id="cards">)[\s\S]*?(</script>)', lambda m: m.group(1) + esc(cards
 SKELETON = ('<!doctype html><html><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
             '<style>html,body{margin:0}</style></head><body>')
-open("decide.html", "w", encoding="utf-8").write(SKELETON + t + "</body></html>")
+open(f"decide-{cfg['run']}.html", "w", encoding="utf-8").write(SKELETON + t + "</body></html>")
+```
+
+Optionally run this from the directory containing the page, with `RUN` set to the run ID. It uses only the Python standard library, listens only on `127.0.0.1`, chooses a free port, and exits after two hours. Keep the printed PID so the process can be stopped with `kill <PID>` after reading the result.
+
+```bash
+RUN=<run> python3 -u - <<'PY' &
+import http.server, json, os, pathlib, re, threading
+RUN = os.environ["RUN"]; ROOT = pathlib.Path.cwd()
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_POST(self):
+        if self.path != "/save": return self.send_error(404)
+        if not self.headers.get("Content-Type", "").startswith("application/json"): return self.send_error(415)
+        origin = self.headers.get("Origin")
+        if origin and origin != "http://127.0.0.1:%d" % self.server.server_port: return self.send_error(403)
+        try: size = int(self.headers.get("Content-Length", ""))
+        except ValueError: return self.send_error(411)
+        if size < 0 or size > 1_048_576: return self.send_error(413)
+        body = self.rfile.read(size)
+        try: data = json.loads(body)
+        except (ValueError, UnicodeDecodeError): return self.send_error(400)
+        run = data.get("run") if isinstance(data, dict) else None
+        if run != RUN or not re.fullmatch(r"[A-Za-z0-9-]{1,100}", run): return self.send_error(400)
+        out = ROOT / "results"; out.mkdir(exist_ok=True)
+        (out / (run + ".json")).write_bytes(body)
+        self.send_response(204); self.end_headers()
+server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+threading.Timer(7200, server.shutdown).start()
+print(f"Open http://127.0.0.1:{server.server_port}/decide-{RUN}.html", flush=True)
+server.serve_forever()
+PY
+SERVER_PID=$!
+echo "Server PID: $SERVER_PID"
 ```
 
 Without the skeleton, a phone may show the page scaled down to a desktop width (980px), and text may also be garbled. When publishing as an artifact, save and publish only `t` (do not add the skeleton).

@@ -1,4 +1,4 @@
-<title>スワイプ意思決定</title>
+<title>Swipe Decide</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -246,8 +246,8 @@ body.shake-s{animation:shakes .24s}
 .opt:focus-visible{outline:3px solid var(--info-d);outline-offset:2px}
 
 /* 結果画面 */
-.done{flex:1;min-height:0;overflow-y:auto;padding-bottom:6px}
-.done-in{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.done{flex:1;min-height:0;width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column}
+.done-in{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
 .kicker{margin:0;font:var(--w-d) 13px var(--f-display);letter-spacing:.16em;color:var(--yes)}
 #d-head{margin:0;font:var(--w-d) 30px/1.3 var(--f-display);text-wrap:balance}
 .save{margin:0;padding:10px 14px;border-radius:14px;font:700 13px/1.5 var(--f-body);background:var(--ink-2);color:var(--mute)}
@@ -267,7 +267,7 @@ body.shake-s{animation:shakes .24s}
 .lab[data-c="later"]{background:var(--later)}
 .row p{margin:0;font:700 14px/1.55 var(--f-body)}
 .row small{display:block;margin-top:2px;font:500 12px var(--f-body);color:var(--later)}
-.actions{position:sticky;bottom:0;display:flex;gap:10px;padding:16px 0 2px;background:linear-gradient(to top,var(--ink) 68%,transparent)}
+.actions{display:flex;gap:10px;padding:12px 0 8px}
 .cta{flex:1;border:0;border-radius:16px;padding:15px 8px;font:900 16px var(--f-body);cursor:pointer}
 .cta.main{background:var(--yes);color:var(--on-accent);flex:2}
 .cta.sub{background:var(--ink-2);color:var(--text);box-shadow:inset 0 0 0 2px var(--line)}
@@ -305,6 +305,18 @@ textarea{width:100%;min-height:140px;margin-top:6px;background:var(--ink-2);colo
   .q{font-size:calc(var(--q-base) - 11px)}
   .card{padding:10px 12px 8px;gap:6px}
   .ob button{padding:4px 10px;font-size:12px}
+}
+@media (max-height:400px){
+  #app{gap:4px}
+  .top{gap:4px}
+  .seg{height:4px}
+  .gear{width:30px;height:30px}
+  .gear svg{width:16px;height:16px}
+  .controls{gap:8px;padding-top:0}
+  .btn.lg{width:44px;height:44px}.btn.md{width:38px;height:38px}.btn.sm{width:32px;height:32px}
+  .card{inset:0 0 12px 0}
+  .ob{grid-template-columns:repeat(2,1fr)}
+  .ob button{padding:3px 8px}
 }
 
 /* ---- スタイルごとの部品の見た目 ---- */
@@ -401,10 +413,10 @@ textarea{width:100%;min-height:140px;margin-top:6px;background:var(--ink-2);colo
       <p class="agree" id="d-agree"></p>
       <ul class="list" id="d-list"></ul>
       <details id="d-details"><summary data-i18n="cantCopy"></summary><textarea id="out" readonly></textarea></details>
-      <div class="actions">
-        <button class="cta sub" id="b-again" data-i18n="again"></button>
-        <button class="cta main" id="b-copy" data-i18n="copy"></button>
-      </div>
+    </div>
+    <div class="actions">
+      <button class="cta sub" id="b-again" data-i18n="again"></button>
+      <button class="cta main" id="b-copy" data-i18n="copy"></button>
     </div>
   </section>
 
@@ -902,7 +914,7 @@ function resultText(r){
   return t('intro')+'\n```json\n'+JSON.stringify(payloadOf(r),null,2)+'\n```';
 }
 
-/* ---------- 保存してClaudeに直接読ませる(db)。使えない・失敗したらコピペに任せる ---------- */
+/* ---------- 結果をdb、ローカルサーバーの順に保存。使えない・失敗したらコピペに任せる ---------- */
 function setStatus(s){
   saveState=s;
   const el=$('#d-save');
@@ -914,20 +926,34 @@ function getDb(){
   }catch(_){}
   return Promise.resolve(null);
 }
+async function saveLocal(doc){
+  const local=(location.protocol==='http:'||location.protocol==='https:')&&
+    (location.hostname==='127.0.0.1'||location.hostname==='localhost');
+  if(!local||typeof fetch!=='function'||typeof AbortController!=='function') return false;
+  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),3000);
+  try{
+    const res=await fetch('/save',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(doc),keepalive:true,signal:ctl.signal});
+    return res.ok;
+  }catch(_){return false}
+  finally{clearTimeout(timer)}
+}
 async function saveResult(){
   const tok=++saveTok,r=result;
   setStatus('saving');
   try{
     const db=await Promise.race([getDb(),new Promise(res=>setTimeout(()=>res(null),12000))]);
     if(tok!==saveTok) return;
-    if(!db){setStatus('none');return}
     const run=String(CFG.run||'sample').replace(/[^A-Za-z0-9_.~:@+-]/g,'-').slice(0,100)||'sample';
-    await db.doc('results/'+run).set(Object.assign({run:run,status:'done',decided_at:new Date().toISOString(),lang:L},payloadOf(r)));
-    if(tok!==saveTok) return;
-    setStatus('ok');
-  }catch(_){
-    if(tok===saveTok) setStatus('fail');
-  }
+    const doc=Object.assign({run:run,status:'done',decided_at:new Date().toISOString(),lang:L},payloadOf(r));
+    if(db) try{
+      await db.doc('results/'+run).set(doc);
+      if(tok!==saveTok) return;
+      setStatus('ok');return;
+    }catch(_){}
+    const saved=await saveLocal(doc);
+    if(tok===saveTok) setStatus(saved?'ok':'none');
+  }catch(_){if(tok===saveTok) setStatus('none')}
 }
 function renderDone(){
   const r=result,contra=N-r.agree;
@@ -948,7 +974,7 @@ function finish(){
   DATA.forEach((c,i)=>{counts[decisions[i]==='pick'?'yes':decisions[i]]++;if(agreeOf(c,i)) agree++});
   result={sec:sec,counts:counts,agree:agree,decisions:decisions.slice(),picks:picks.slice()};
   stage.hidden=true;controls.hidden=true;hint.hidden=true;comboEl.textContent='';
-  done.hidden=false;done.scrollTop=0;
+  done.hidden=false;$('#done .done-in').scrollTop=0;
   renderDone();
   saveResult();
   if(LK().confetti) confetti();

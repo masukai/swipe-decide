@@ -23,7 +23,13 @@ claude plugin install swipe-decide@swipe-decide-marketplace
 
 見た目は calm / pop / flashy の3種類。Yes・No、2〜4択、取り消しにくい判断の確認、NO時の代案に対応します。
 
-詳しい使い方・仕組み・注意点は、正本の [README.md](README.md) を参照してください。Claude Codeでのみテスト済みです。Claudeアプリ外では自動保存されないため、「結果をコピー」してチャットへ貼り付けます。
+詳しい使い方・仕組み・注意点は、正本の [README.md](README.md) を参照してください。Claude Codeでのみテスト済みです。Claude Codeなどシェルが使える環境では、Claudeが小さなローカルサーバー(自分のPC内だけ)を立てて、結果が自動で保存されます。Claudeアプリではアーティファクトが保存します。それ以外は「結果をコピー」してチャットへ貼り付けます。
+
+## コントリビュート
+
+機能の要望やバグ報告はissueで、PRも歓迎です。詳しくは [CONTRIBUTING.md](CONTRIBUTING.md) へ。
+
+**デザインに興味がある方、ぜひ。** カードUIは1つのHTMLファイルで、見た目(calm / pop / flashy)はそれぞれCSSのひとまとまりです。新しいスタイル、既存スタイルの磨き込み、どちらも大歓迎です。
 
 ## このプロジェクトについて
 
