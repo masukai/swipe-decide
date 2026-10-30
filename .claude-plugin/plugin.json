@@ -1,0 +1,9 @@
+{
+  "name": "swipe-decide",
+  "displayName": "Swipe Decide",
+  "description": "Turn the open decisions piling up in a session into swipeable cards, settle them in one go, and let Claude pick the work back up.",
+  "version": "0.1.0",
+  "author": { "name": "masukai" },
+  "license": "MIT",
+  "keywords": ["decision", "swipe", "workflow"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "swipe-decide-marketplace",
+  "owner": {
+    "name": "masukai"
+  },
+  "plugins": [
+    {
+      "name": "swipe-decide",
+      "source": "./",
+      "description": "Settle open decisions in one go by swiping cards"
+    }
+  ],
+  "description": "Marketplace for swipe-decide, a skill that settles open decisions by swiping cards"
+}
