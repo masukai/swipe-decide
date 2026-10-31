@@ -13,7 +13,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-skill%20%26%20plugin-d97757.svg)](#-30秒で始める)
 [![Check](https://github.com/masukai/swipe-decide/actions/workflows/check.yml/badge.svg)](https://github.com/masukai/swipe-decide/actions/workflows/check.yml)
 
-<img src="docs/demo.gif" alt="決定カードをスワイプ。GO、NOPE、あとで、コンボと紙吹雪" width="320">
+<img src="docs/demo.ja.gif" alt="決定カードをスワイプ。GO、NOPE、あとで、コンボと紙吹雪" width="320">
 
 [始め方](#-30秒で始める) · [操作](#-操作) · [見た目](#-見た目) · [コントリビュート](#-コントリビュート)
 
